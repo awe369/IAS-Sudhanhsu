@@ -193,7 +193,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- APKA CONFIG ADD KAR DIYA HAI ---
+        // --- FIXED CONFIG ---
         const myFirebaseConfig = {
           apiKey: "AIzaSyDdjErMiMUMYG4DfS75m9it_NgJkQLvyUg",
           authDomain: "patelexamportal.firebaseapp.com",
@@ -228,7 +228,7 @@
         }
 
         const startApp = async () => {
-            // Safety Timeout: Agar 6 second tak load na ho, to "No Exam" screen dikha do
+            // Safety Timeout
             setTimeout(() => {
                 const loading = document.getElementById('loading-state');
                 if (!loading.classList.contains('hidden')) {
@@ -246,9 +246,9 @@
                 dbConnected = true;
                 setStatus('live');
 
-                const examDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'liveExam');
+                // --- PATH FIXED: Added 'activeTest' document at the end ---
+                const examDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'liveExam', 'activeTest');
                 
-                // Add error callback to onSnapshot
                 onSnapshot(examDocRef, (snap) => {
                     if (snap.exists()) {
                         currentExam = snap.data();
@@ -283,7 +283,6 @@
             views[viewName].classList.remove('hidden');
         }
         
-        // Expose function for the manual link in loading screen
         window.forceAdminView = () => {
             isAdmin = true;
             document.getElementById('admin-toggle').textContent = "View Portal";
@@ -336,7 +335,6 @@
             isAdmin = !isAdmin;
             document.getElementById('admin-toggle').textContent = isAdmin ? "View Portal" : "Admin Portal";
             if (isAdmin) switchView('admin'); else {
-                 // Check state again if leaving admin
                  if(currentExam) processExamState();
                  else switchView('ended');
             }
@@ -347,12 +345,26 @@
             if (!title || !url || !start || !dur) { alert("Sari details bharein!"); return; }
             const config = { title, pdfUrl: sanitizeDriveUrl(url), startTime: new Date(start).getTime(), duration: dur };
             if (dbConnected) {
-                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'liveExam'), config); alert("Exam Live ho gaya hai!"); isAdmin = false; document.getElementById('admin-toggle').textContent = "Admin Portal"; processExamState(); }
+                try { 
+                    // --- PATH FIXED: Added 'activeTest' document at the end ---
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'liveExam', 'activeTest'), config); 
+                    alert("Exam Live ho gaya hai!"); 
+                    isAdmin = false; 
+                    document.getElementById('admin-toggle').textContent = "Admin Portal"; 
+                    processExamState(); 
+                }
                 catch (e) { alert("Error: " + e.message); }
             } else { alert("Firebase connected nahi hai!"); }
         };
 
-        document.getElementById('clear-exam-btn').onclick = async () => { if (confirm("Khatam kardein?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'liveExam')); location.reload(); };
+        document.getElementById('clear-exam-btn').onclick = async () => { 
+            if (confirm("Khatam kardein?")) {
+                // --- PATH FIXED ---
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'liveExam', 'activeTest')); 
+                location.reload(); 
+            }
+        };
+        
         document.getElementById('fs-btn').onclick = () => { const c = document.getElementById('exam-container'); if (!document.fullscreenElement) c.requestFullscreen(); else document.exitFullscreen(); };
         document.getElementById('end-test-btn').onclick = () => { if (confirm("End attempt?")) endSession(); };
 
